@@ -30,13 +30,12 @@ float computeHomogeneity(const Mat &);
 
 int main() {
     const string IMG_PATH      = "./res/",
-                 IMG_FILENAME  = "test",
+                 IMG_FILENAME  = "test3",
                  IMG_EXTENSION = ".jpg",
                  IMG_FULLPATH  = IMG_PATH + IMG_FILENAME + IMG_EXTENSION;
 
     Mat img = imread(IMG_FULLPATH, IMREAD_GRAYSCALE);
     // resize(img, img, Size(), 0.45, 0.45);
-    imshow(IMG_FILENAME, img);
 
     // Mat img = (Mat_<uchar>(5, 5) <<
     //           0, 255,   0,   0,   0,
@@ -46,8 +45,8 @@ int main() {
     //           0, 255, 255,   0, 255
     // );
 
-    ofstream horHomogeneityFile("out/" + IMG_FILENAME + "_horHomogeneity.csv", ios::out),
-             verHomogeneityFile("out/" + IMG_FILENAME + "_verHomogeneity.csv", ios::out);
+    ofstream horHomogeneityFile("./out/" + IMG_FILENAME + "_horHomogeneity.csv", ios::out),
+             verHomogeneityFile("./out/" + IMG_FILENAME + "_verHomogeneity.csv", ios::out);
 
     Mat horNormDifHist,
         verNormDifHist;
@@ -69,6 +68,14 @@ int main() {
     system(("python plot.py " + IMG_FILENAME + " --save").c_str());
     // system(("python plot.py " + IMG_FILENAME + " --show").c_str());
     // system(("python plot.py " + IMG_FILENAME + " --save-and-show").c_str());
+
+    imshow(IMG_FILENAME, img);
+    moveWindow(IMG_FILENAME, 0, 0);
+
+    Mat plot = imread("./out/img/" + IMG_FILENAME + "_homogeneity.png");
+    resize(plot, plot, Size(), 0.5, 0.5);
+    imshow(IMG_FILENAME + " homogeneity", plot);
+    moveWindow(IMG_FILENAME + " homogeneity", img.cols, 0);
 
     waitKey();
     destroyAllWindows();
