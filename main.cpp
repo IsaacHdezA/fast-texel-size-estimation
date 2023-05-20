@@ -1,6 +1,9 @@
+#include <cstdlib>
 #include <iostream>
-#include <cmath>
 #include <fstream>
+
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 using namespace std;
 
@@ -17,16 +20,17 @@ void writeCSV(string filename, Mat m) {
    myfile.close();
 }
 
-Mat computeGLCM(const Mat &, int = 1, float = 0);
-Mat computeSumHist(const Mat &, const int = 1, const int = 0);
-Mat computeDifHist(const Mat &, const int = 1, const int = 0);
+inline float toRad(float deg) { return (deg * M_PI)/180; }
+
+Mat computeHorDifHist(const Mat &, const int = 1, const int = 0);
+Mat computeVerDifHist(const Mat &, const int = 1, const int = 0);
 
 Mat normHist(const Mat &);
 float computeHomogeneity(const Mat &);
 
 int main() {
     const string IMG_PATH      = "./res/",
-                 IMG_FILENAME  = "test3",
+                 IMG_FILENAME  = "test",
                  IMG_EXTENSION = ".jpg",
                  IMG_FULLPATH  = IMG_PATH + IMG_FILENAME + IMG_EXTENSION;
 
@@ -42,29 +46,29 @@ int main() {
     //           0, 255, 255,   0, 255
     // );
 
-    ofstream horHomogeneityFile("horHomogeneity.csv", ios::out);
-    Mat normDifHist;
-    for(int d = 1; d < 256; d++) {
-        cout << "difHist with " << d << ": ";
-        normDifHist = normHist(computeDifHist(img, d));
-        horHomogeneityFile << computeHomogeneity(normDifHist) << ',';
-    }
-    horHomogeneityFile << endl;
-    horHomogeneityFile.close();
+    ofstream horHomogeneityFile("out/" + IMG_FILENAME + "_horHomogeneity.csv", ios::out),
+             verHomogeneityFile("out/" + IMG_FILENAME + "_verHomogeneity.csv", ios::out);
 
-    ofstream verHomogeneityFile("verHomogeneity.csv", ios::out);
-    for(int d = 1; d < 256; d++) {
-        Mat vertDifHist = Mat::zeros(1, 511, CV_16UC1);
-        for(int c = 0; c < img.cols; c++) {
-            for(int r = 0; r < (img.rows - d); r++)
-                ++vertDifHist.at<ushort>(0, (img.at<uchar>(r, c) - img.at<uchar>(r + d, c)) + 255);
-        }
-        Mat vertNormDifHist = normHist(vertDifHist);
-        verHomogeneityFile << computeHomogeneity(vertNormDifHist) << ',';
+    Mat horNormDifHist,
+        verNormDifHist;
+
+    for(int d = 1; d < img.cols; d++) {
+        horNormDifHist = normHist(computeHorDifHist(img, d, 0));
+        horHomogeneityFile << computeHomogeneity(horNormDifHist) << ((d + 1) < img.cols ? "," : "");
     }
-    
-    // writeCSV("sumHist.csv", normSumHist);
-    // writeCSV("difHist.csv", normDifHist);
+
+    for(int d = 1; d < img.cols; d++) {
+        verNormDifHist = normHist(computeVerDifHist(img, d, 0));
+        verHomogeneityFile << computeHomogeneity(verNormDifHist) << ((d + 1) < img.cols ? "," : "");
+    }
+
+    horHomogeneityFile.close();
+    verHomogeneityFile.close();
+
+    // Creating plots
+    system(("python plot.py " + IMG_FILENAME + " --save").c_str());
+    // system(("python plot.py " + IMG_FILENAME + " --show").c_str());
+    // system(("python plot.py " + IMG_FILENAME + " --save-and-show").c_str());
 
     waitKey();
     destroyAllWindows();
@@ -90,8 +94,12 @@ Mat computeSumHist(const Mat &src, const int D, const int THETA) {
     return out;
 }
 
-Mat computeDifHist(const Mat &src, const int D, const int THETA) {
+Mat computeHorDifHist(const Mat &src, const int D, const int THETA) {
     Mat out;
+    const float ANGLE = toRad(THETA + 90);
+    // cout << THETA << "deg to rad: " << ANGLE << "rad" << '\n'
+    //      << "\tx = " << cos(ANGLE) << "\n"
+    //      << "\ty = " << sin(ANGLE) << "\n";
 
     if(src.empty() || src.channels() > 1 || !src.data) {
         cout << "computeSumHist(): Image is empty or should be grayscale" << endl;
@@ -103,6 +111,23 @@ Mat computeDifHist(const Mat &src, const int D, const int THETA) {
         uchar *row = (uchar *) src.ptr<uchar>(r);
         for(int c = 0; c < (src.cols - D); c++)
             ++out.at<ushort>(0, (row[c] - row[c + D]) + 255);
+    }
+
+    return out;
+}
+
+Mat computeVerDifHist(const Mat &src, const int D, const int THETA) {
+    Mat out;
+
+    if(src.empty() || src.channels() > 1 || !src.data) {
+        cout << "computeSumHist(): Image is empty or should be grayscale" << endl;
+        return out;
+    }
+
+    out = Mat::zeros(1, 511, CV_16UC1);
+    for(int c = 0; c < src.cols; c++) {
+        for(int r = 0; r < (src.rows - D); r++)
+            ++out.at<ushort>(0, (src.at<uchar>(r, c) - src.at<uchar>(r + D, c)) + 255);
     }
 
     return out;
@@ -120,8 +145,6 @@ Mat normHist(const Mat &hist) {
     out.convertTo(out, CV_32FC1);
 
     int totSum = sum(out)[0];
-    cout << totSum << endl;
-
     out = out / totSum;
 
     return out;
@@ -137,6 +160,6 @@ float computeHomogeneity(const Mat &difHist) {
     for(int i = 0; i < difHist.cols; i++)
         // homogeneity += (1.0/(1 + ((i - 255) * (i - 255)))) * difHist.at<float>(0, i);
            homogeneity += (1.0/(1 + ((i - 255) * (i - 255)))) * difHist.at<float>(0, i);
-    
+
     return homogeneity;
 }
