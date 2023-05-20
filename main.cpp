@@ -25,39 +25,39 @@ float computeHomogeneity(const Mat &);
 
 int main() {
     const string IMG_PATH      = "./res/",
-                 IMG_FILENAME  = "test",
+                 IMG_FILENAME  = "test3",
                  IMG_EXTENSION = ".jpg",
                  IMG_FULLPATH  = IMG_PATH + IMG_FILENAME + IMG_EXTENSION;
 
-    // Mat img = imread(IMG_FULLPATH, IMREAD_GRAYSCALE);
+    Mat img = imread(IMG_FULLPATH, IMREAD_GRAYSCALE);
     // resize(img, img, Size(), 0.45, 0.45);
-    // imshow(IMG_FILENAME, img);
+    imshow(IMG_FILENAME, img);
 
-    Mat img = (Mat_<uchar>(5, 5) <<
-              0, 255,   0,   0,   0,
-            255, 255, 255,   0, 255,
-            255, 255,   0, 255, 255,
-            255,   0, 255, 255, 255,
-              0, 255, 255,   0, 255
-    );
+    // Mat img = (Mat_<uchar>(5, 5) <<
+    //           0, 255,   0,   0,   0,
+    //         255, 255, 255,   0, 255,
+    //         255, 255,   0, 255, 255,
+    //         255,   0, 255, 255, 255,
+    //           0, 255, 255,   0, 255
+    // );
 
-    Mat sumHist = computeSumHist(img),
-        difHist = computeDifHist(img);
-
-    Mat normSumHist = normHist(sumHist),
-        normDifHist = normHist(difHist);
+    ofstream homogeneityCues("homogeneity.csv", ios::out);
+    Mat normDifHist;
+    for(int d = 1; d < 256; d++) {
+        cout << "difHist with " << d << ": ";
+        normDifHist = normHist(computeDifHist(img, d));
+        homogeneityCues << computeHomogeneity(normDifHist) << ',';
+    }
+    homogeneityCues << endl;
+    homogeneityCues.close();
     
-    writeCSV("sumHist.csv", normSumHist);
-    writeCSV("difHist.csv", normDifHist);
+    // writeCSV("sumHist.csv", normSumHist);
+    // writeCSV("difHist.csv", normDifHist);
 
     waitKey();
     destroyAllWindows();
 
     return 0;
-}
-
-Mat glcm(const Mat &src, int d, float theta) {
-
 }
 
 Mat computeSumHist(const Mat &src, const int D, const int THETA) {
@@ -68,11 +68,11 @@ Mat computeSumHist(const Mat &src, const int D, const int THETA) {
         return out;
     }
 
-    out = Mat::zeros(1, 512, CV_8UC1);
+    out = Mat::zeros(1, 512, CV_16UC1);
     for(int i = 0; i < src.rows; i++) {
         uchar *row = (uchar *) src.ptr<uchar>(i);
         for(int j = 0; j < (src.cols - D); j++)
-            ++out.at<uchar>(0, (row[j] + row[j + D]));
+            ++out.at<ushort>(0, (row[j] + row[j + D]));
     }
 
     return out;
@@ -86,30 +86,45 @@ Mat computeDifHist(const Mat &src, const int D, const int THETA) {
         return out;
     }
 
-    out = Mat::zeros(1, 512, CV_8UC1);
-    for(int i = 0; i < src.rows; i++) {
-        uchar *row = (uchar *) src.ptr<uchar>(i);
-        for(int j = 0; j < (src.cols - D); j++)
-            ++out.at<uchar>(0, (row[j] - row[j + D]) + 255);
+    out = Mat::zeros(1, 511, CV_16UC1);
+    for(int r = 0; r < src.rows; r++) {
+        uchar *row = (uchar *) src.ptr<uchar>(r);
+        for(int c = 0; c < (src.cols - D); c++)
+            ++out.at<ushort>(0, (row[c] - row[c + D]) + 255);
     }
 
     return out;
 }
 
-Mat normHist(const Mat &src) {
+Mat normHist(const Mat &hist) {
     Mat out;
 
-    if(src.empty() || src.channels() > 1 || !src.data || src.rows > 1) {
+    if(hist.empty() || hist.channels() > 1 || !hist.data || hist.rows > 1) {
         cout << "normHist: Histogram should be one row only" << endl;
         return out;
     }
 
-    out = src.clone();
+    out = hist.clone();
     out.convertTo(out, CV_32FC1);
 
     int totSum = sum(out)[0];
+    cout << totSum << endl;
 
     out = out / totSum;
 
     return out;
+}
+
+float computeHomogeneity(const Mat &difHist) {
+    if(difHist.empty() || difHist.channels() > 1 || !difHist.data || difHist.rows > 1) {
+        cout << "normHist: Histogram should be one row only" << endl;
+        return -1;
+    }
+
+    float homogeneity = 0;
+    for(int i = 0; i < difHist.cols; i++)
+        // homogeneity += (1.0/(1 + ((i - 255) * (i - 255)))) * difHist.at<float>(0, i);
+           homogeneity += (1.0/(1 + ((i - 255) * (i - 255)))) * difHist.at<float>(0, i);
+    
+    return homogeneity;
 }
