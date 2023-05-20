@@ -15,16 +15,20 @@ img_name = sys.argv[1]
 
 horHomoCues = [float(num) for num in read_file(f"out/{img_name}_horHomogeneity.csv")[0]]
 verHomoCues = [float(num) for num in read_file(f"out/{img_name}_verHomogeneity.csv")[0]]
-x = np.arange(0, len(horHomoCues))
+
+biggerDim = 0
+if(len(horHomoCues) > len(verHomoCues)): biggerDim = len(horHomoCues)
+else: biggerDim = len(verHomoCues)
+x = np.arange(0, biggerDim)
 
 plt.figure(f"{img_name} homogeneity", dpi = 120)
 plt.title(f"Homogeneity with variable displacement ({img_name})")
 plt.xlabel("Displacement/Offset")
 plt.ylabel("Homogeneity")
-plt.xticks(range(0, len(horHomoCues), 50))
+plt.xticks(range(0, biggerDim, 50))
 plt.yticks([i / 100 for i in range(0, 100, 5)])
-plt.plot(x, verHomoCues, "+-", markerfacecolor = 'none', ms=3.5, color = "red",  label = "Vertical")
-plt.plot(x, horHomoCues, "o-", markerfacecolor = 'none', ms=3.5, color = "blue", label = "Horizontal")
+plt.plot(np.arange(0, len(verHomoCues)), verHomoCues, "+-", markerfacecolor = 'none', ms=3.5, color = "red",  label = "Vertical")
+plt.plot(np.arange(0, len(horHomoCues)), horHomoCues, "o-", markerfacecolor = 'none', ms=3.5, color = "blue", label = "Horizontal")
 plt.grid(color = "darkgray", linestyle = "dashed", linewidth = "0.5")
 plt.legend()
 

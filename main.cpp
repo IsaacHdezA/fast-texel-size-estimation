@@ -1,4 +1,4 @@
-#if WIN32
+#ifdef _WIN32
   #include <Windows.h>
 
   inline int  getScreenWidth() { return (int) ::GetSystemMetrics(SM_CXSCREEN); }
@@ -43,11 +43,11 @@ int main() {
 
   Mat img = imread(IMG_FULLPATH, IMREAD_GRAYSCALE);
 
-  #if WIN32
+  #ifdef _WIN32
     const int SCRN_WIDTH = getScreenWidth(), SCRN_HEIGHT = getScreenHeight();
 
     if(img.cols > (SCRN_WIDTH / 2) || img.rows > (SCRN_HEIGHT / 2))
-      resize(img, img, Size((SCRN_WIDTH / 2), (SCRN_HEIGHT / 2)));
+      resize(img, img, Size((SCRN_WIDTH / 2.8), (SCRN_HEIGHT / 2.8)));
   #endif
 
   // Mat img = (Mat_<uchar>(5, 5) <<
@@ -69,9 +69,9 @@ int main() {
       horHomogeneityFile << computeHomogeneity(horNormDifHist) << ((d + 1) < img.cols ? "," : "");
   }
 
-  for(int d = 1; d < img.cols; d++) {
+  for(int d = 1; d < img.rows; d++) {
       verNormDifHist = normHist(computeVerDifHist(img, d, 0));
-      verHomogeneityFile << computeHomogeneity(verNormDifHist) << ((d + 1) < img.cols ? "," : "");
+      verHomogeneityFile << computeHomogeneity(verNormDifHist) << ((d + 1) < img.rows ? "," : "");
   }
 
   horHomogeneityFile.close();
