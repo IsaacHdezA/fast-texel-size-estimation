@@ -5,3 +5,5 @@ out/
 .vscode/
 *.depend
 *.layout
+*.csv
+*.txt

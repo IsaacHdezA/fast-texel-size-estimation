@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include <fstream>
 
 using namespace std;
@@ -41,15 +42,26 @@ int main() {
     //           0, 255, 255,   0, 255
     // );
 
-    ofstream homogeneityCues("homogeneity.csv", ios::out);
+    ofstream horHomogeneityFile("horHomogeneity.csv", ios::out);
     Mat normDifHist;
     for(int d = 1; d < 256; d++) {
         cout << "difHist with " << d << ": ";
         normDifHist = normHist(computeDifHist(img, d));
-        homogeneityCues << computeHomogeneity(normDifHist) << ',';
+        horHomogeneityFile << computeHomogeneity(normDifHist) << ',';
     }
-    homogeneityCues << endl;
-    homogeneityCues.close();
+    horHomogeneityFile << endl;
+    horHomogeneityFile.close();
+
+    ofstream verHomogeneityFile("verHomogeneity.csv", ios::out);
+    for(int d = 1; d < 256; d++) {
+        Mat vertDifHist = Mat::zeros(1, 511, CV_16UC1);
+        for(int c = 0; c < img.cols; c++) {
+            for(int r = 0; r < (img.rows - d); r++)
+                ++vertDifHist.at<ushort>(0, (img.at<uchar>(r, c) - img.at<uchar>(r + d, c)) + 255);
+        }
+        Mat vertNormDifHist = normHist(vertDifHist);
+        verHomogeneityFile << computeHomogeneity(vertNormDifHist) << ',';
+    }
     
     // writeCSV("sumHist.csv", normSumHist);
     // writeCSV("difHist.csv", normDifHist);
@@ -68,7 +80,7 @@ Mat computeSumHist(const Mat &src, const int D, const int THETA) {
         return out;
     }
 
-    out = Mat::zeros(1, 512, CV_16UC1);
+    out = Mat::zeros(1, 511, CV_16UC1);
     for(int i = 0; i < src.rows; i++) {
         uchar *row = (uchar *) src.ptr<uchar>(i);
         for(int j = 0; j < (src.cols - D); j++)
