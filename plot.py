@@ -13,8 +13,8 @@ def read_file(filename):
 
 img_name = sys.argv[1]
 
-horHomoCues = [float(num) for num in read_file(f"out/{img_name}_horHomogeneity.csv")[0]]
-verHomoCues = [float(num) for num in read_file(f"out/{img_name}_verHomogeneity.csv")[0]]
+horHomoCues = [float(num) for num in read_file(f"out/csv/{img_name}_horHomogeneity.csv")[0]]
+verHomoCues = [float(num) for num in read_file(f"out/csv/{img_name}_verHomogeneity.csv")[0]]
 
 biggerDim = 0
 if(len(horHomoCues) > len(verHomoCues)): biggerDim = len(horHomoCues)
@@ -35,30 +35,30 @@ try:
 	arg = sys.argv[2]
 	match arg:
 		case "--save":
-			if(not os.path.isdir("./out/img/")):
-				os.mkdir("./out/img/")
-				plt.savefig(f"./out/img/{img_name}_homogeneity.png", dpi = 280)
+			if(not os.path.isdir("./out/hist/")):
+				os.mkdir("./out/hist/")
+				plt.savefig(f"./out/hist/{img_name}_homogeneity.png", dpi = 280)
 			else:
-				plt.savefig(f"./out/img/{img_name}_homogeneity.png", dpi = 280)
+				plt.savefig(f"./out/hist/{img_name}_homogeneity.png", dpi = 280)
 
 		case "--show":
 			plt.show()
 
 		case "--save-and-show":
-			if(not os.path.isdir("./out/img/")):
-				os.mkdir("./out/img/")
-				plt.savefig(f"./out/img/{img_name}_homogeneity.png", dpi = 280)
+			if(not os.path.isdir("./out/hist/")):
+				os.mkdir("./out/hist/")
+				plt.savefig(f"./out/hist/{img_name}_homogeneity.png", dpi = 280)
 				plt.show()
 			else:
-				plt.savefig(f"./out/img/{img_name}_homogeneity.png", dpi = 280)
+				plt.savefig(f"./out/hist/{img_name}_homogeneity.png", dpi = 280)
 				plt.show()
 
 		case _:
 			print(
 	    """Error while processing arguments. You can:
-\t--save: Save figure in out/img/.
+\t--save: Save figure in out/hist/.
 \t--show: Opens a window showing the figure.
-\t--save-and-show: Save figure in out/img/ and open a window showing the figure.
+\t--save-and-show: Save figure in out/hist/ and open a window showing the figure.
 			""")
 except:
   pass

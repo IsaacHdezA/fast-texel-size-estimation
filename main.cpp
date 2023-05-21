@@ -27,8 +27,6 @@ void writeCSV(string filename, Mat m) {
   myfile.close();
 }
 
-inline float toRad(float deg) { return (deg * M_PI)/180; }
-
 Mat computeHorDifHist(const Mat &, const int = 1, const int = 0);
 Mat computeVerDifHist(const Mat &, const int = 1, const int = 0);
 
@@ -38,7 +36,7 @@ void findMax(const float *, int, float &, int &);
 
 int main() {
   const string IMG_PATH      = "./res/",
-               IMG_FILENAME  = "test3",
+               IMG_FILENAME  = "window",
                IMG_EXTENSION = ".jpg",
                IMG_FULLPATH  = IMG_PATH + IMG_FILENAME + IMG_EXTENSION;
 
@@ -55,16 +53,8 @@ int main() {
   res = img.clone();
   cvtColor(img, img, COLOR_BGR2GRAY);
 
-  // Mat img = (Mat_<uchar>(5, 5) <<
-  //           0, 255,   0,   0,   0,
-  //         255, 255, 255,   0, 255,
-  //         255, 255,   0, 255, 255,
-  //         255,   0, 255, 255, 255,
-  //           0, 255, 255,   0, 255
-  // );
-
-  ofstream horHomogeneityFile("./out/" + IMG_FILENAME + "_horHomogeneity.csv", ios::out),
-           verHomogeneityFile("./out/" + IMG_FILENAME + "_verHomogeneity.csv", ios::out);
+  ofstream horHomogeneityFile("./out/csv/" + IMG_FILENAME + "_horHomogeneity.csv", ios::out),
+           verHomogeneityFile("./out/csv/" + IMG_FILENAME + "_verHomogeneity.csv", ios::out);
 
   Mat horNormDifHist,
       verNormDifHist;
@@ -104,26 +94,30 @@ int main() {
 
   // Creating plots
   system(("python plot.py " + IMG_FILENAME + " --save").c_str());
-  // system(("python plot.py " + IMG_FILENAME + " --show").c_str());
-  // system(("python plot.py " + IMG_FILENAME + " --save-and-show").c_str());
 
   imshow(IMG_FILENAME, img);
   moveWindow(IMG_FILENAME, 0, 0);
 
-  Mat plot = imread("./out/img/" + IMG_FILENAME + "_homogeneity.png");
+  Mat plot = imread("./out/hist/" + IMG_FILENAME + "_homogeneity.png");
   resize(plot, plot, Size(), 0.5, 0.5);
   imshow(IMG_FILENAME + " homogeneity", plot);
   moveWindow(IMG_FILENAME + " homogeneity", img.cols, 0);
 
-  rectangle(
-    res,
-    Point(0, 0),
-    Point(maxHorId, maxVerId),
-    Scalar(0, 0, 255),
-    2,
-    LINE_8
-  );
+  for(int i = 0; i < 2; i++) {
+    for(int j = 0; j < 2; j++) {
+      rectangle(
+        res,
+        Point(j * maxHorId, i * maxVerId),
+        Point((j + 1) * maxHorId, (i + 1) * maxVerId),
+        Scalar(0, 0, 255),
+        2,
+        LINE_8
+      );
+
+    }
+  }
   imshow(IMG_FILENAME + " with texel", res);
+  imwrite("./out/img/" + IMG_FILENAME + "_texel.jpg", res);
   moveWindow(IMG_FILENAME + " with texel", 0, img.rows);
 
   waitKey();
@@ -135,30 +129,8 @@ int main() {
   return 0;
 }
 
-Mat computeSumHist(const Mat &src, const int D, const int THETA) {
-  Mat out;
-
-  if(src.empty() || src.channels() > 1 || !src.data) {
-    cout << "computeSumHist(): Image is empty or should be grayscale" << endl;
-    return out;
-  }
-
-  out = Mat::zeros(1, 511, CV_16UC1);
-  for(int i = 0; i < src.rows; i++) {
-    uchar *row = (uchar *) src.ptr<uchar>(i);
-    for(int j = 0; j < (src.cols - D); j++)
-      ++out.at<ushort>(0, (row[j] + row[j + D]));
-  }
-
-  return out;
-}
-
 Mat computeHorDifHist(const Mat &src, const int D, const int THETA) {
   Mat out;
-  const float ANGLE = toRad(THETA + 90);
-  // cout << THETA << "deg to rad: " << ANGLE << "rad" << '\n'
-  //      << "\tx = " << cos(ANGLE) << "\n"
-  //      << "\ty = " << sin(ANGLE) << "\n";
 
   if(src.empty() || src.channels() > 1 || !src.data) {
     cout << "computeSumHist(): Image is empty or should be grayscale" << endl;
