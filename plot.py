@@ -19,7 +19,6 @@ verHomoCues = [float(num) for num in read_file(f"out/{img_name}_verHomogeneity.c
 biggerDim = 0
 if(len(horHomoCues) > len(verHomoCues)): biggerDim = len(horHomoCues)
 else: biggerDim = len(verHomoCues)
-x = np.arange(0, biggerDim)
 
 plt.figure(f"{img_name} homogeneity", dpi = 120)
 plt.title(f"Homogeneity with variable displacement ({img_name})")

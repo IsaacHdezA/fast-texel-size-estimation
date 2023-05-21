@@ -34,6 +34,7 @@ Mat computeVerDifHist(const Mat &, const int = 1, const int = 0);
 
 Mat normHist(const Mat &);
 float computeHomogeneity(const Mat &);
+void findMax(const float *, int, float &, int &);
 
 int main() {
   const string IMG_PATH      = "./res/",
@@ -41,7 +42,8 @@ int main() {
                IMG_EXTENSION = ".jpg",
                IMG_FULLPATH  = IMG_PATH + IMG_FILENAME + IMG_EXTENSION;
 
-  Mat img = imread(IMG_FULLPATH, IMREAD_GRAYSCALE);
+  Mat img = imread(IMG_FULLPATH),
+      res;
 
   #ifdef _WIN32
     const int SCRN_WIDTH = getScreenWidth(), SCRN_HEIGHT = getScreenHeight();
@@ -49,6 +51,9 @@ int main() {
     if(img.cols > (SCRN_WIDTH / 2) || img.rows > (SCRN_HEIGHT / 2))
       resize(img, img, Size((SCRN_WIDTH / 2.8), (SCRN_HEIGHT / 2.8)));
   #endif
+
+  res = img.clone();
+  cvtColor(img, img, COLOR_BGR2GRAY);
 
   // Mat img = (Mat_<uchar>(5, 5) <<
   //           0, 255,   0,   0,   0,
@@ -64,18 +69,38 @@ int main() {
   Mat horNormDifHist,
       verNormDifHist;
 
-  for(int d = 1; d < img.cols; d++) {
+  float horHomogeneity = 0,
+        horHomogeneityVec[img.cols/2] = { 0 };
+  for(int d = 2; d < img.cols/2; d++) {
       horNormDifHist = normHist(computeHorDifHist(img, d, 0));
-      horHomogeneityFile << computeHomogeneity(horNormDifHist) << ((d + 1) < img.cols ? "," : "");
+      horHomogeneity = computeHomogeneity(horNormDifHist);
+      horHomogeneityFile << horHomogeneity << ((d + 1) < img.cols/2 ? "," : "");
+
+      horHomogeneityVec[d] = horHomogeneity;
   }
 
-  for(int d = 1; d < img.rows; d++) {
+  float verHomogeneity = 0,
+        verHomogeneityVec[img.rows/2] = { 0 };
+  for(int d = 2; d < img.rows/2; d++) {
       verNormDifHist = normHist(computeVerDifHist(img, d, 0));
-      verHomogeneityFile << computeHomogeneity(verNormDifHist) << ((d + 1) < img.rows ? "," : "");
+      verHomogeneity = computeHomogeneity(verNormDifHist);
+      verHomogeneityFile << verHomogeneity << ((d + 1) < img.rows/2 ? "," : "");
+
+      verHomogeneityVec[d] = verHomogeneity;
   }
 
   horHomogeneityFile.close();
   verHomogeneityFile.close();
+
+  // Finding texel size (?) maybe
+  float maxVer = 0,   maxHor = 0;
+  int maxVerId = 0, maxHorId = 0;
+  findMax(verHomogeneityVec, img.rows/2, maxVer, maxVerId);
+  findMax(horHomogeneityVec, img.cols/2, maxHor, maxHorId);
+
+
+  cout << "Max value in horizontal axis: " << maxHor << " at id " << maxHorId << '\n'
+       << "Max value in vertical axis: "   << maxVer << " at id " << maxVerId << endl;
 
   // Creating plots
   system(("python plot.py " + IMG_FILENAME + " --save").c_str());
@@ -90,8 +115,22 @@ int main() {
   imshow(IMG_FILENAME + " homogeneity", plot);
   moveWindow(IMG_FILENAME + " homogeneity", img.cols, 0);
 
+  rectangle(
+    res,
+    Point(0, 0),
+    Point(maxHorId, maxVerId),
+    Scalar(0, 0, 255),
+    2,
+    LINE_8
+  );
+  imshow(IMG_FILENAME + " with texel", res);
+  moveWindow(IMG_FILENAME + " with texel", 0, img.rows);
+
   waitKey();
   destroyAllWindows();
+
+  delete [] verHomogeneityVec;
+  delete [] horHomogeneityVec;
 
   return 0;
 }
@@ -182,4 +221,14 @@ float computeHomogeneity(const Mat &difHist) {
     homogeneity += (1.0/(1 + ((i - 255) * (i - 255)))) * difHist.at<float>(0, i);
 
   return homogeneity;
+}
+
+void findMax(const float *vec, int size, float &val, int &id) {
+  val = vec[0];
+
+  for(int i = 10; i < size; i++)
+    if(vec[i] > val) {
+      val = vec[i];
+      id = i;
+    }
 }
