@@ -95,21 +95,26 @@ int main() {
   imwrite("./out/img/" + IMG_FILENAME + "_texel.jpg", res);
   moveWindow(IMG_FILENAME + " with texel", 0, img.rows);
 
-  // Creating plots using external script
-  system(("python plot.py " + IMG_FILENAME + " --save").c_str());
-
-  // Opening plots created with Python
-  Mat plot = imread("./out/hist/" + IMG_FILENAME + "_homogeneity.png");
-  resize(plot, plot, Size(), 0.4, 0.4);
-  imshow(IMG_FILENAME + " homogeneity", plot);
-  moveWindow(IMG_FILENAME + " homogeneity", img.cols, 0);
-
   // Recreate image using texel
   Mat recreation = recreatePattern(img.cols, img.rows, texel);
   resize(recreation, recreation, Size(), 1.3, 1.3);
   imshow("Texel image recreation", recreation);
-  moveWindow("Texel image recreation", img.cols, plot.rows);
   imwrite("./out/img/" + IMG_FILENAME + "_texel-rec.jpg", recreation);
+
+  // Creating plots using external script
+  try {
+    system(("python plot.py " + IMG_FILENAME + " --save").c_str());
+
+    // Opening plots created with Python
+    Mat plot = imread("./out/hist/" + IMG_FILENAME + "_homogeneity.png");
+    resize(plot, plot, Size(), 0.4, 0.4);
+    imshow(IMG_FILENAME + " homogeneity", plot);
+    moveWindow(IMG_FILENAME + " homogeneity", img.cols, 0);
+    moveWindow("Texel image recreation", img.cols, plot.rows);
+  } catch(Exception ERR) {
+    cout << "\n[ERROR] Could not create nor open plot. Try installing Python kernel and the matplotlib module or manually execute the plot.py script" << endl;
+    moveWindow("Texel image recreation", img.cols, 0);
+  }
 
   waitKey();
   destroyAllWindows();
@@ -236,7 +241,6 @@ Mat findTexel(const Mat &src, const string &IMG_FILENAME, int verThres, int horT
 
   Mat texel = Mat::zeros(texHeight, texWidth, CV_8UC3);
   texel = src(Range(0, texHeight), Range(0, texWidth));
-  cout << texel.cols << "x" << texel.rows << endl;
 
   return texel;
 }
